@@ -311,8 +311,13 @@ fn game_state_updates(
     if_frontend! {
         use futures::StreamExt;
         use gloo_net::websocket::{futures::WebSocket, Message::Text};
+        use gloo_utils::window;
 
-        let conn = WebSocket::open(&format!("ws://localhost:3000/ws/room/{room_id}/{uid}")).expect("failed to open ws");
+        let protocol = if window().location().protocol().unwrap() == "https:" { "wss" } else { "ws" };
+        let origin = window().location().host().unwrap();
+
+        let conn = WebSocket::open(&format!("{protocol}://{origin}/ws/room/{room_id}/{uid}"))
+            .expect("failed to open ws");
 
         let mut recv = conn.split().1;
         spawn_local(async move {
