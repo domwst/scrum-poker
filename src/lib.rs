@@ -5,6 +5,7 @@ if_backend! {
     pub mod fileserv;
     pub mod random_nickname;
 }
+pub mod components;
 
 #[cfg(feature = "hydrate")]
 #[wasm_bindgen::prelude::wasm_bindgen]

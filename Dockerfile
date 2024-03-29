@@ -22,10 +22,10 @@ FROM debian:bullseye-slim as final
 
 WORKDIR /app
 
-COPY --from=build /app/target/release/scrum-pocker scrum-pocker
+COPY --from=build /app/target/release/scrum-poker scrum-poker
 COPY --from=build /app/target/site site
 
-ENV LEPTOS_OUTPUT_NAME="scrum-pocker"
+ENV LEPTOS_OUTPUT_NAME="scrum-poker"
 ENV LEPTOS_SITE_ROOT="site"
 ENV LEPTOS_SITE_PKG_DIR="pkg"
 ENV LEPTOS_SITE_ADDR="0.0.0.0:3000"
@@ -47,4 +47,4 @@ USER appuser
 
 EXPOSE 3000
 
-CMD ["/app/scrum-pocker"]
+CMD ["/app/scrum-poker"]

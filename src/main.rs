@@ -10,7 +10,7 @@ use axum::{
 use leptos::*;
 use leptos_axum::handle_server_fns_with_context;
 use leptos_router::*;
-use scrum_pocker::app::{App, ServerState};
+use scrum_poker::{app::App, components::poker::backend::ServerState};
 use std::future::Future;
 
 #[derive(FromRef, Debug, Clone)]
@@ -69,16 +69,9 @@ async fn main() {
     use axum::Router;
     use leptos::*;
     use leptos_axum::{generate_route_list, LeptosRoutes};
-    use scrum_pocker::app::*;
-    use scrum_pocker::fileserv::file_and_error_handler;
+    use scrum_poker::app::*;
+    use scrum_poker::fileserv::file_and_error_handler;
 
-    // tracing::subscriber::set_global_default(
-    //     tracing_subscriber::FmtSubscriber::builder()
-    //         .with_max_level(tracing::Level::TRACE)
-    //         .with_level(true)
-    //         .finish(),
-    // )
-    // .expect("failed to initialize tracing");
     tracing_subscriber::FmtSubscriber::builder()
         .with_max_level(tracing::Level::DEBUG)
         .with_level(true)
@@ -101,7 +94,6 @@ async fn main() {
         routes: routes.clone(),
     };
 
-    // build our application with a route
     let app = Router::new()
         .route(
             "/api/*fn_name",
