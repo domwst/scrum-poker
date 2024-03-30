@@ -1,6 +1,12 @@
 use crate::random_nickname::gen_nickname;
 use atomic_refcell::AtomicRefCell;
-use axum::extract::ws::{Message, WebSocket};
+use axum::{
+    extract::{
+        ws::{Message, WebSocket},
+        Path, State, WebSocketUpgrade,
+    },
+    response::IntoResponse,
+};
 use futures::{stream::SplitSink, SinkExt, StreamExt};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::{Mutex as AsyncMutex, RwLock as AsyncRwLock};
@@ -92,6 +98,17 @@ impl Default for GameInner {
             hidden: true,
         }
     }
+}
+
+pub async fn ws_handler(
+    State(server_state): State<ServerState>,
+    Path((room_id, uid)): Path<(u64, u64)>,
+    ws: WebSocketUpgrade,
+) -> impl IntoResponse {
+    tracing::debug!("Received new connection");
+    ws.on_upgrade(
+        move |socket| async move { server_state.new_connection(room_id, uid, socket).await },
+    )
 }
 
 impl GameInner {

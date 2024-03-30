@@ -3,14 +3,14 @@
 
 use axum::{
     body::Body as AxumBody,
-    extract::{FromRef, Path, Request, State, WebSocketUpgrade},
+    extract::{FromRef, Request, State},
     response::IntoResponse,
     routing::get,
 };
 use leptos::*;
 use leptos_axum::handle_server_fns_with_context;
 use leptos_router::*;
-use scrum_poker::{app::App, components::poker::backend::ServerState};
+use scrum_poker::{app::App, components::poker::room::backend::ServerState};
 use std::future::Future;
 
 #[derive(FromRef, Debug, Clone)]
@@ -52,16 +52,6 @@ fn leptos_routes_handler(
         App,
     )
 }
-async fn ws_handler(
-    State(server_state): State<ServerState>,
-    Path((room_id, uid)): Path<(u64, u64)>,
-    ws: WebSocketUpgrade,
-) -> impl IntoResponse {
-    tracing::debug!("Received new connection");
-    ws.on_upgrade(
-        move |socket| async move { server_state.new_connection(room_id, uid, socket).await },
-    )
-}
 
 #[cfg(feature = "ssr")]
 #[tokio::main]
@@ -70,6 +60,7 @@ async fn main() {
     use leptos::*;
     use leptos_axum::{generate_route_list, LeptosRoutes};
     use scrum_poker::app::*;
+    use scrum_poker::components::poker::room::backend::ws_handler;
     use scrum_poker::fileserv::file_and_error_handler;
 
     tracing_subscriber::FmtSubscriber::builder()

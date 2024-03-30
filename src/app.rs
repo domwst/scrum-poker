@@ -1,4 +1,4 @@
-use crate::components::poker::frontend::PokerRoom;
+use crate::components::poker::{main::frontend::PickRoom, room::frontend::PokerRoom};
 use crate::error_template::{AppError, ErrorTemplate};
 use leptos::*;
 use leptos_meta::*;
@@ -29,7 +29,8 @@ pub fn App() -> impl IntoView {
         }>
             <main>
                 <Routes>
-                    <Route path="" view=PokerRoom/>
+                    <Route path="" view=PickRoom />
+                    <Route path="rooms/:room_id" view=PokerRoom/>
                 </Routes>
             </main>
         </Router>

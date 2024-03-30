@@ -6,8 +6,9 @@ use getrandom::getrandom;
 use leptos::{
     component, create_action, create_memo, create_node_ref, create_signal, html,
     leptos_dom::logging::console_log, server, spawn_local, use_context, view, IntoView, NodeRef,
-    ServerFnError, SignalGet, SignalSet, SignalWith,
+    Params, ServerFnError, SignalGet, SignalSet, SignalWith,
 };
+use leptos_router::{use_params, Params};
 use serde::{Deserialize, Serialize};
 use std::{cmp::Reverse, iter};
 
@@ -76,6 +77,7 @@ fn game_state_updates(
     room_id: u64,
     uid: u64,
 ) -> impl SignalGet<Value = PlayerGameState> + SignalWith<Value = PlayerGameState> + Copy {
+    // TODO: use create_signal_from_stream
     let (state, set_state) = create_signal(PlayerGameState::default());
     if_frontend! {
         use futures::StreamExt;
@@ -295,11 +297,19 @@ fn GameStateTable<GameStateSignal: SignalGet<Value = PlayerGameState> + Copy + '
     }
 }
 
+#[derive(Params, Clone, PartialEq)]
+struct PokerRoomId {
+    room_id: u64,
+}
+
 /// Renders the home page of your application.
 #[component]
 pub fn PokerRoom() -> impl IntoView {
+    let room_id = use_params::<PokerRoomId>()
+        .get()
+        .expect("PokerRoom params to exist")
+        .room_id;
     let uid = get_random_u64().unwrap();
-    let room_id = 1;
     let game_state = game_state_updates(room_id, uid);
     let avg_bet = create_memo(move |_| {
         game_state.with(|state| {
@@ -350,5 +360,3 @@ pub fn PokerRoom() -> impl IntoView {
         </div>
     }
 }
-
-
