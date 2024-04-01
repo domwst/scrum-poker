@@ -11,7 +11,7 @@ use futures::{stream::SplitSink, SinkExt, StreamExt};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::{Mutex as AsyncMutex, RwLock as AsyncRwLock};
 
-use super::frontend::{PlayerGameState, PlayerState};
+use super::api::{PlayerGameState, PlayerState};
 
 #[derive(Debug, Clone, Default)]
 pub struct ServerState(Arc<AsyncRwLock<ServerStateInner>>);

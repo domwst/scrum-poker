@@ -1,77 +1,16 @@
-if_backend! {
-    use super::backend::{Game, ServerState};
-}
-use crate::{if_backend, if_frontend};
+use super::api::{check_username, hide, place_bet, reveal, set_name, PlayerGameState, PlayerState};
+use crate::{
+    error_template::{AppError, ErrorTemplate},
+    if_frontend,
+};
 use getrandom::getrandom;
 use leptos::{
-    component, create_action, create_memo, create_node_ref, create_signal, html,
-    leptos_dom::logging::console_log, server, spawn_local, use_context, view, IntoView, NodeRef,
-    Params, ServerFnError, SignalGet, SignalSet, SignalWith,
+    component, create_action, create_memo, create_signal, event_target_value,
+    leptos_dom::logging::console_log, spawn_local, view, Errors, IntoView, Params, SignalGet,
+    SignalGetUntracked, SignalSet, SignalWith,
 };
 use leptos_router::{use_params, Params};
-use serde::{Deserialize, Serialize};
 use std::{cmp::Reverse, iter};
-
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
-pub struct PlayerState {
-    pub(super) card: Option<u64>,
-    pub(super) name: String,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
-pub struct PlayerGameState {
-    pub(super) players: Vec<PlayerState>,
-    pub(super) cards: Vec<u64>,
-    pub(super) self_state: PlayerState,
-    pub(super) hidden: bool,
-}
-
-if_backend! {
-    async fn get_game(room_id: u64) -> Result<Game, ServerFnError> {
-        let state = use_context::<ServerState>().expect("ServerState to be provided");
-        state
-            .get_game(room_id)
-            .await
-            .map(Ok)
-            .unwrap_or_else(|| Err(ServerFnError::ServerError("No such room".to_string())))
-    }
-}
-
-#[server(PlaceBet, "/api")]
-async fn place_bet(room_id: u64, uid: u64, card: Option<u64>) -> Result<(), ServerFnError> {
-    get_game(room_id)
-        .await?
-        .0
-        .lock()
-        .await
-        .place_bet(uid, card)
-        .await;
-    Ok(())
-}
-
-#[server(Reveal, "/api")]
-async fn reveal(room_id: u64) -> Result<(), ServerFnError> {
-    get_game(room_id).await?.0.lock().await.reveal().await;
-    Ok(())
-}
-
-#[server(Hide, "/api")]
-async fn hide(room_id: u64) -> Result<(), ServerFnError> {
-    get_game(room_id).await?.0.lock().await.hide().await;
-    Ok(())
-}
-
-#[server(SetName, "/api")]
-async fn set_name(room_id: u64, uid: u64, name: String) -> Result<(), ServerFnError> {
-    get_game(room_id)
-        .await?
-        .0
-        .lock()
-        .await
-        .set_name(uid, name)
-        .await;
-    Ok(())
-}
 
 fn game_state_updates(
     room_id: u64,
@@ -133,12 +72,9 @@ fn CardThick() -> impl IntoView {
 }
 
 #[component]
-fn NameChange<Signal: SignalGet<Value = String> + Copy + 'static>(
-    current_name: Signal,
-    creds: (u64, u64),
-) -> impl IntoView {
+fn NameChange(current_name: String, creds: (u64, u64)) -> impl IntoView {
     let (uid, room_id) = creds;
-    let input_element: NodeRef<html::Input> = create_node_ref();
+    let (new_name, set_new_name) = create_signal(current_name);
     let set_name = create_action(move |name: &String| {
         let name = name.clone();
         async move {
@@ -147,20 +83,44 @@ fn NameChange<Signal: SignalGet<Value = String> + Copy + 'static>(
             }
         }
     });
+    let nameError = create_memo(move |_| new_name.with(|s| check_username(s)));
     let on_submit = move |ev: leptos::ev::SubmitEvent| {
         ev.prevent_default();
-        let value = input_element().expect("<input> to be mounted").value();
-        set_name.dispatch(value);
+        if nameError.get().is_ok() {
+            set_name.dispatch(new_name.get());
+        }
     };
+    let on_input = move |ev| {
+        set_new_name(event_target_value(&ev));
+    };
+
+    let input_classes = move |is_error: bool| {
+        let default = "input input-bordered flex items-center gap-2";
+        if is_error {
+            format!("{default} input-error")
+        } else {
+            default.to_string()
+        }
+    };
+
     view! {
         <form on:submit=on_submit>
-            <label class="input input-bordered flex items-center gap-2">
+            <label class=move || input_classes(nameError.get().is_err())>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4 opacity-70">
                     <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM12.735 14c.618 0 1.093-.561.872-1.139a6.002 6.002 0 0 0-11.215 0c-.22.578.254 1.139.872 1.139h9.47Z" />
                 </svg>
-                <input type="text" class="grow" value=move || current_name.get() node_ref=input_element />
+                <input type="text" class="grow" prop:value=new_name on:input=on_input />
+                { move ||
+                    match nameError.get() {
+                        Ok(_) => view!{}.into_view(),
+                        Err(e) => view! {
+                            <div class="label">
+                                <span class="label-text-alt text-error">{ e }</span>
+                            </div>
+                        }.into_view()
+                    }
+                }
             </label>
-            // <input type="submit" hidden />
         </form>
     }
 }
@@ -305,10 +265,17 @@ struct PokerRoomId {
 /// Renders the home page of your application.
 #[component]
 pub fn PokerRoom() -> impl IntoView {
-    let room_id = use_params::<PokerRoomId>()
-        .get()
-        .expect("PokerRoom params to exist")
-        .room_id;
+    let room_id = match use_params::<PokerRoomId>().get_untracked() {
+        Ok(r) => r.room_id,
+        Err(_) => {
+            let mut errors = Errors::default();
+            errors.insert_with_default_key(AppError::NotFound);
+            return view! {
+                <ErrorTemplate outside_errors=errors />
+            }
+            .into_view();
+        }
+    };
     let uid = get_random_u64().unwrap();
     let game_state = game_state_updates(room_id, uid);
     let avg_bet = create_memo(move |_| {
@@ -327,6 +294,8 @@ pub fn PokerRoom() -> impl IntoView {
             }
         })
     });
+
+    let current_name = create_memo(move |_| game_state.with(|state| state.self_state.name.clone()));
 
     view! {
         <div class="max-w-4xl mx-auto px-8 sm:px-4 lg:px-6 pt-6">
@@ -351,12 +320,16 @@ pub fn PokerRoom() -> impl IntoView {
                     />
                 </div>
                 <div class="mt-2">
-                    <NameChange
-                        current_name=create_memo(move |_| game_state.with(|state| state.self_state.name.clone()))
-                        creds=(uid, room_id)
-                    />
+                { move || {
+                    view!{
+                        <NameChange
+                            current_name=current_name.get()
+                            creds=(uid, room_id)
+                        />
+                    }
+                }}
                 </div>
             </div>
         </div>
-    }
+    }.into_view()
 }
