@@ -5,19 +5,22 @@ use leptos::{
 #[component]
 pub fn PickRoom() -> impl IntoView {
     let (room_id, set_room_id) = create_signal(String::new());
-    let on_submit = move |ev: leptos::ev::SubmitEvent| {
-        use leptos::window;
-
-        ev.prevent_default();
-        window()
-            .location()
-            .set_href(&format!("/rooms/{}", room_id.get()))
-            .unwrap()
-    };
     let on_input = move |ev| {
         set_room_id(event_target_value(&ev));
     };
     let parse_error = create_memo(move |_| room_id.get().parse::<u64>().err());
+
+    let on_submit = move |ev: leptos::ev::SubmitEvent| {
+        use leptos::window;
+
+        ev.prevent_default();
+        if parse_error.get().is_none() {
+            window()
+                .location()
+                .set_href(&format!("/rooms/{}", room_id.get()))
+                .unwrap()
+        }
+    };
 
     view! {
         <div class="max-w-4xl mx-auto px-8 sm:px-4 lg:px-6 pt-6">
