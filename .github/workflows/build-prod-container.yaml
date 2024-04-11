@@ -2,10 +2,12 @@ name: Build prod container
 
 on:
   push:
-    branches: [ "master" ]
+    branches:
+      - main
   workflow_run:
     workflows: [ "ci-image-build-and-push" ]
-    branches: [ "master" ]
+    branches:
+      - main
     types:
       - completed
 
