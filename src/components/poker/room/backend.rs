@@ -10,6 +10,7 @@ use axum::{
 use futures::{stream::SplitSink, SinkExt, StreamExt};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::{Mutex as AsyncMutex, RwLock as AsyncRwLock};
+use tracing::debug;
 
 use super::api::{PlayerGameState, PlayerState};
 
@@ -22,12 +23,27 @@ impl ServerState {
     }
 
     pub async fn new_connection(&self, room_id: u64, uid: u64, ws: WebSocket) {
+        let (send, mut recv) = ws.split();
+        tokio::spawn({
+            let state = self.clone();
+            async move {
+                while let Some(v) = recv.next().await {
+                    if let Err(e) = v {
+                        debug!("Received error {e:?} from user {uid} in room {room_id}");
+                    }
+                }
+                debug!("Client {uid} disconnected from room {room_id}");
+                if let Some(game) = state.get_game(room_id).await {
+                    game.0.lock().await.disconnect_player(uid).await;
+                }
+            }
+        });
         self.get_or_create_game(room_id)
             .await
             .0
             .lock()
             .await
-            .new_player(uid, ws.split().0)
+            .new_player(uid, send)
             .await;
     }
 
@@ -122,6 +138,13 @@ impl GameInner {
             Self::drop_player(uid, old).await;
         }
         self.send_update().await;
+    }
+
+    pub(super) async fn disconnect_player(&mut self, uid: u64) {
+        if let Some(player) = self.players.remove(&uid) {
+            Self::drop_player(uid, player).await;
+            self.send_update().await;
+        }
     }
 
     #[allow(dead_code)]
