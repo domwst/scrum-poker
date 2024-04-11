@@ -1,11 +1,16 @@
-<picture>
-    <source srcset="https://raw.githubusercontent.com/leptos-rs/leptos/main/docs/logos/Leptos_logo_Solid_White.svg" media="(prefers-color-scheme: dark)">
-    <img src="https://raw.githubusercontent.com/leptos-rs/leptos/main/docs/logos/Leptos_logo_RGB.svg" alt="Leptos Logo">
-</picture>
+# Scrum poker
+
+<img src="readme-logo.svg" />
+<!-- <picture> -->
+<!--     <source srcset="https://raw.githubusercontent.com/leptos-rs/leptos/main/docs/logos/Leptos_logo_Solid_White.svg" media="(prefers-color-scheme: dark)"> -->
+<!--     <img src="https://raw.githubusercontent.com/leptos-rs/leptos/main/docs/logos/Leptos_logo_RGB.svg" alt="Leptos Logo"> -->
+<!-- </picture> -->
 
 # Leptos Axum Starter Template
 
-This is a template for use with the [Leptos](https://github.com/leptos-rs/leptos) web framework and the [cargo-leptos](https://github.com/akesson/cargo-leptos) tool using [Axum](https://github.com/tokio-rs/axum).
+This is a template for use with the [Leptos](https://github.com/leptos-rs/leptos)
+web framework and the [cargo-leptos](https://github.com/akesson/cargo-leptos) tool
+using [Axum](https://github.com/tokio-rs/axum).
 
 ## Creating your template repo
 
@@ -16,6 +21,7 @@ cargo install cargo-leptos
 ```
 
 Then run
+
 ```bash
 cargo leptos new --git leptos-rs/start-axum
 ```
@@ -27,8 +33,10 @@ cd leptos-app
 ```
 
 to go to your newly created project.  
-Feel free to explore the project structure, but the best place to start with your application code is in `src/app.rs`.  
-Addtionally, Cargo.toml may need updating as new versions of the dependencies are released, especially if things are not working after a `cargo update`.
+Feel free to explore the project structure, but the best place to start with your
+application code is in `src/app.rs`. Addtionally, Cargo.toml may need updating as
+new versions of the dependencies are released, especially if things are not working
+after a `cargo update`.
 
 ## Running your project
 
