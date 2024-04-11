@@ -82,6 +82,7 @@ tags
 [._]*.un~
 
 **/package-lock.json
+package.json
 
 # I'll leave it here for now
 end2end
