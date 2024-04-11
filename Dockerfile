@@ -2,7 +2,7 @@ FROM domwst/scrum-poker-ci-image as build
 
 COPY . .
 
-RUN rm /app/Cargo.lock
+RUN rm /build/Cargo.lock
 
 RUN cargo leptos build --release
 
