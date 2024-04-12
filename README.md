@@ -1,98 +1,135 @@
 # Scrum poker
 
-<img src="readme-logo.svg" />
-<!-- <picture> -->
-<!--     <source srcset="https://raw.githubusercontent.com/leptos-rs/leptos/main/docs/logos/Leptos_logo_Solid_White.svg" media="(prefers-color-scheme: dark)"> -->
-<!--     <img src="https://raw.githubusercontent.com/leptos-rs/leptos/main/docs/logos/Leptos_logo_RGB.svg" alt="Leptos Logo"> -->
-<!-- </picture> -->
+![Logo](readme-logo.svg)
 
-# Leptos Axum Starter Template
+While practicing scrum we've noticed there are nearly none free online scrum poker tools. Now there is at least one.
 
-This is a template for use with the [Leptos](https://github.com/leptos-rs/leptos)
-web framework and the [cargo-leptos](https://github.com/akesson/cargo-leptos) tool
-using [Axum](https://github.com/tokio-rs/axum).
+If you'd like to play scrum poker right away, it's available at [poker.kek.today](https://poker.kek.today/).
 
-## Creating your template repo
+## Development
 
-If you don't have `cargo-leptos` installed you can install it with
+Not sure why would you like to do this, but if you do, here is how you can build and run this service locally:
 
-```bash
-cargo install cargo-leptos
-```
+1. Install the latest [rust toolchain](https://www.rust-lang.org/tools/install)
+1. Install cargo-leptos to build the project:
 
-Then run
+    ```bash
+    cargo install cargo-leptos
+    ```
 
-```bash
-cargo leptos new --git leptos-rs/start-axum
-```
+1. Install some npm stuff:
 
-to generate a new project template.
+    ```bash
+    npm install -D tailwindcss
+    npm install -D daisyui@latest
+    ```
 
-```bash
-cd leptos-app
-```
+    If you're using linux and can't get current npm version, you should probably take a look [here](https://github.com/nodesource/distributions) (seriously, I don't know, how TF are you supposed to find that out)
 
-to go to your newly created project.  
-Feel free to explore the project structure, but the best place to start with your
-application code is in `src/app.rs`. Addtionally, Cargo.toml may need updating as
-new versions of the dependencies are released, especially if things are not working
-after a `cargo update`.
+1. Build:
 
-## Running your project
+    ```bash
+    cargo leptos build
+    ```
 
-```bash
-cargo leptos watch
-```
+1. Start the server:
 
-## Installing Additional Tools
+    ```
+    cargo leptos serve
+    ```
 
-By default, `cargo-leptos` uses `nightly` Rust, `cargo-generate`, and `sass`. If you run into any trouble, you may need to install one or more of these tools.
+1. 🪄 You are awesome
 
-1. `rustup toolchain install nightly --allow-downgrade` - make sure you have Rust nightly
-2. `rustup target add wasm32-unknown-unknown` - add the ability to compile Rust to WebAssembly
-3. `cargo install cargo-generate` - install `cargo-generate` binary (should be installed automatically in future)
-4. `npm install -g sass` - install `dart-sass` (should be optional in future
+Or you could have a look at the [ci container setup](https://github.com/domwst/scrum-poker/blob/main/.build-container/Dockerfile).
 
-## Compiling for Release
-```bash
-cargo leptos build --release
-```
 
-Will generate your server binary in target/server/release and your site package in target/site
+### Troubleshooting
 
-## Testing Your Project
-```bash
-cargo leptos end-to-end
-```
+If this project doesn't build properly and there is word "nightly" somewhere in the compiler's output, this probably means that your compiler did't have a look at the `rust-toolchain.yaml`, run the following command:
 
 ```bash
-cargo leptos end-to-end --release
+rustup default nightly
 ```
 
-Cargo-leptos uses Playwright as the end-to-end test tool.  
-Tests are located in end2end/tests directory.
+If is says somethig about wasm or webassembly, try to run the following command:
 
-## Executing a Server on a Remote Machine Without the Toolchain
-After running a `cargo leptos build --release` the minimum files needed are:
+```bash
+rustup target add wasm32-unknown-unknown
+```
 
-1. The server binary located in `target/server/release`
-2. The `site` directory and all files within located in `target/site`
+### Tech stack
 
-Copy these files to your remote server. The directory structure should be:
-```text
-leptos-app
+You might've noticed that this poker is blazingly fast, that's all due to a fact, that it's written purely in rust (yes, even the frontend).
+
+Key libraries/frameworks are:
+
+- Frontend
+  - [Leptos](https://leptos.dev/)
+  - [Tailwind](https://tailwindcss.com/)
+  - [Daisyui](https://daisyui.com/) – because I need someone to do all the hard work for me
+- Backend
+  - [Tokiooo](https://tokio.rs/)
+  - [Axum](https://github.com/tokio-rs/axum/)
+
+Communication is done via websockets and leptos server functions (which in turn are plain HTTP GET/POST requests).
+
+## Running on a remote server
+
+### From sources
+
+1. Compile the server in `release` mode:
+
+    ```bash
+    cargo leptos build --release
+    ```
+
+1. Copy the binary from `target/release/scrum-poker`
+1. Copy static stuff from `target/site`
+
+Your folder structure should look like this:
+
+```
+scrum-poker
 site/
 ```
-Set the following environment variables (updating for your project as needed):
-```text
-LEPTOS_OUTPUT_NAME="leptos-app"
+
+In order to run the server, you have to provide it with these environment variables:
+
+```env
+LEPTOS_OUTPUT_NAME="scrum-poker"
 LEPTOS_SITE_ROOT="site"
 LEPTOS_SITE_PKG_DIR="pkg"
-LEPTOS_SITE_ADDR="127.0.0.1:3000"
+LEPTOS_SITE_ADDR="0.0.0.0:3000"
 LEPTOS_RELOAD_PORT="3001"
 ```
-Finally, run the server binary.
 
-## Licensing
+Or have a look at the container setup in the [Dockerfile](https://github.com/domwst/scrum-poker/blob/main/Dockerfile).
 
-This template itself is released under the Unlicense. You should replace the LICENSE for your own application with an appropriate license if you plan to release it publicly.
+### From docker image
+
+```bash
+docker run -d -p 3000:3000 --name scrum-poker domwst/scrum-poker
+```
+
+## From an educational standpoint
+
+### Websockets
+
+There are not a lot of examples on websockets usage in axum and leptos, I think this project can somehow fill the niche. Some key places to look at:
+
+- Axum
+  - [Registration of a handler](https://github.com/domwst/scrum-poker/blob/be6fc129477974fe6e949a534268344a258d52b5/src/main.rs#L94)
+  - [The handler itself](https://github.com/domwst/scrum-poker/blob/be6fc129477974fe6e949a534268344a258d52b5/src/components/poker/room/backend.rs#L119)
+- Leptos
+  - [Manual conversion](https://github.com/domwst/scrum-poker/blob/be6fc129477974fe6e949a534268344a258d52b5/src/components/poker/room/frontend.rs#L15) from websocket stream to a signal update
+  - [Conversion](https://www.youtube.com/watch?v=dQw4w9WgXcQ) of the websocket stream to a signal using [create_signal_from_stream](https://docs.rs/leptos/latest/leptos/fn.create_signal_from_stream.html) (TODO)
+
+  ### Leptos + Axum
+
+  If you want to learn how to make leptos and axum play together, please reffer to [official template](https://github.com/leptos-rs/start-axum) from which this project was derived.
+
+  ### Project structure and development patterns
+
+  Please do not learn these concepts from this project, at the moment it's poorly structured and probably implements some of the components not in a way they should be implemented. It's good enough to get the job done but I don't beleive one should learn how to structure web-applications from this repository.
+
+  Peace ❤️
