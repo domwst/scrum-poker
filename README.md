@@ -124,12 +124,12 @@ There are not a lot of examples on websockets usage in axum and leptos, I think 
   - [Manual conversion](https://github.com/domwst/scrum-poker/blob/be6fc129477974fe6e949a534268344a258d52b5/src/components/poker/room/frontend.rs#L15) from websocket stream to a signal update
   - [Conversion](https://www.youtube.com/watch?v=dQw4w9WgXcQ) of the websocket stream to a signal using [create_signal_from_stream](https://docs.rs/leptos/latest/leptos/fn.create_signal_from_stream.html) (TODO)
 
-  ### Leptos + Axum
+### Leptos + Axum
 
   If you want to learn how to make leptos and axum play together, please reffer to [official template](https://github.com/leptos-rs/start-axum) from which this project was derived.
 
-  ### Project structure and development patterns
+### Project structure and development patterns
 
   Please do not learn these concepts from this project, at the moment it's poorly structured and probably implements some of the components not in a way they should be implemented. It's good enough to get the job done but I don't beleive one should learn how to structure web-applications from this repository.
 
-  Peace ❤️
+Btw did I mention it's written in rust?
