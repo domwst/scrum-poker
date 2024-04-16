@@ -13,7 +13,7 @@ pub fn App() -> impl IntoView {
 
 
         // id=leptos means cargo-leptos will hot-reload this stylesheet
-        <Stylesheet id="leptos" href="/pkg/scrum-poker.css"/>
+        <Stylesheet id="leptos" href="/static/scrum-poker.css"/>
         <Link rel="icon" href="/card-club-thick.svg" />
 
         <Title text="Poker" />

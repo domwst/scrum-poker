@@ -15,7 +15,7 @@ COPY --from=build /build/target/site site
 
 ENV LEPTOS_OUTPUT_NAME="scrum-poker"
 ENV LEPTOS_SITE_ROOT="site"
-ENV LEPTOS_SITE_PKG_DIR="pkg"
+ENV LEPTOS_SITE_PKG_DIR="static"
 ENV LEPTOS_SITE_ADDR="0.0.0.0:3000"
 ENV LEPTOS_RELOAD_PORT="3001"
 
