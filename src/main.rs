@@ -1,3 +1,5 @@
+#![feature(impl_trait_in_fn_trait_return)]
+
 use axum::{
     body::Body as AxumBody,
     extract::{FromRef, Request, State},
