@@ -34,7 +34,12 @@ impl ServerState {
                 }
                 debug!("Client {uid} disconnected from room {room_id}");
                 if let Some(game) = state.get_game(room_id).await {
-                    game.0.lock().await.disconnect_player(uid).await;
+                    let mut game = game.0.lock().await;
+                    game.disconnect_player(uid).await;
+                    if game.is_empty() {
+                        debug!("No more players in the room {room_id}, destroying it");
+                        state.remove_game(room_id).await;
+                    }
                 }
             }
         });
@@ -45,6 +50,10 @@ impl ServerState {
             .await
             .new_player(uid, send)
             .await;
+    }
+
+    async fn remove_game(&self, room_id: u64) -> Option<Game> {
+        self.0.write().await.remove_game(room_id).await
     }
 
     pub(super) async fn get_game(&self, room_id: u64) -> Option<Game> {
@@ -71,6 +80,10 @@ impl ServerStateInner {
 
     async fn get_or_create_game(&mut self, room_id: u64) -> Game {
         self.games.entry(room_id).or_insert_with(Game::new).clone()
+    }
+
+    async fn remove_game(&mut self, room_id: u64) -> Option<Game> {
+        self.games.remove(&room_id)
     }
 }
 
@@ -145,6 +158,10 @@ impl GameInner {
             Self::drop_player(uid, player).await;
             self.send_update().await;
         }
+    }
+
+    pub(super) fn is_empty(&self) -> bool {
+        self.players.is_empty()
     }
 
     #[allow(dead_code)]
