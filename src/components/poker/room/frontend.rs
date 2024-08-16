@@ -198,7 +198,7 @@ fn HideReveal<
             } else {
                 view! {
                     <button on:click=move |_| hide.dispatch(()) class="btn">
-                        "Agerage is " { convert_to_double(avg.get()) }
+                        "Average is " { convert_to_double(avg.get()) }
                     </button>
                 }.into_view()
             }
