@@ -34,14 +34,13 @@ Not sure why would you like to do this, but if you do, here is how you can build
 
 1. Start the server:
 
-    ```
+    ```bash
     cargo leptos serve
     ```
 
 1. 🪄 You are awesome
 
 Or you could have a look at the [ci container setup](https://github.com/domwst/scrum-poker/blob/main/.build-container/Dockerfile).
-
 
 ### Troubleshooting
 
@@ -88,7 +87,7 @@ Communication is done via websockets and leptos server functions (which in turn 
 
 Your folder structure should look like this:
 
-```
+```text
 scrum-poker
 site/
 ```
