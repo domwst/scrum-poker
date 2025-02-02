@@ -10,4 +10,4 @@ RUN npm install -D tailwindcss
 RUN npm install -D daisyui@latest
 RUN rustup default nightly
 RUN rustup target add wasm32-unknown-unknown
-RUN cargo install cargo-leptos # Bump
+RUN cargo install cargo-leptos
