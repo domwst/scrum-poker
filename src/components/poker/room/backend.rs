@@ -238,7 +238,7 @@ impl GameInner {
                     .receiver
                     .borrow_mut()
                     .send(Message::Text(
-                        serde_json::to_string(&player_game_state).unwrap(),
+                        serde_json::to_string(&player_game_state).unwrap().into(),
                     ))
                     .await
                 {

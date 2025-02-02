@@ -1,17 +1,16 @@
-use leptos::{
-    component, create_memo, create_signal, event_target_value, view, IntoView, SignalGet,
-};
+use leptos::either::Either;
+use leptos::prelude::*;
 
 #[component]
 pub fn PickRoom() -> impl IntoView {
-    let (room_id, set_room_id) = create_signal(String::new());
+    let (room_id, set_room_id) = signal(String::new());
     let on_input = move |ev| {
         set_room_id(event_target_value(&ev));
     };
-    let parse_error = create_memo(move |_| room_id.get().parse::<u64>().err());
+    let parse_error = Memo::new(move |_| room_id.get().parse::<u64>().err());
 
     let on_submit = move |ev: leptos::ev::SubmitEvent| {
-        use leptos::window;
+        use leptos::prelude::window;
 
         ev.prevent_default();
         if parse_error.get().is_none() {
@@ -37,18 +36,14 @@ pub fn PickRoom() -> impl IntoView {
                     <div class="w-2 h-auto"></div>
                     { move || {
                         match parse_error.get() {
-                            None => {
-                                view! {
-                                    <input type="submit" class="btn" value="Go!" />
-                                }.into_view()
-                            }
-                            Some(e) => {
-                                view! {
-                                    <div class="tooltip tooltip-right before:whitespace-pre before:content-[attr(data-tip)]" data-tip=format!("Wrong room number: {:?}\n(u64 expected)", e.kind())>
-                                        <input type="submit" class="btn btn-disabled" value="Nope" />
-                                    </div>
-                                }.into_view()
-                            }
+                            None => Either::Left(view! {
+                                <input type="submit" class="btn" value="Go!" />
+                            }),
+                            Some(e) => Either::Right(view! {
+                                <div class="tooltip tooltip-right before:whitespace-pre before:content-[attr(data-tip)]" data-tip=format!("Wrong room number: {:?}\n(u64 expected)", e.kind())>
+                                    <input type="submit" class="btn btn-disabled" value="Nope" />
+                                </div>
+                            }),
                         }
                     }}
                 </div>

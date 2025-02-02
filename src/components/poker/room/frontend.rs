@@ -1,24 +1,21 @@
 use super::api::{check_username, hide, place_bet, reveal, set_name, PlayerGameState, PlayerState};
 use crate::{
     error_template::{AppError, ErrorTemplate},
-    if_frontend,
+    if_backend, if_frontend,
 };
 use getrandom::getrandom;
-use leptos::{
-    component, create_action, create_memo, create_signal, event_target_value,
-    leptos_dom::logging::console_log, spawn_local, view, Errors, IntoView, Params, SignalGet,
-    SignalGetUntracked, SignalSet, SignalWith,
-};
-use leptos_router::{use_params, Params};
-use std::{cmp::Reverse, iter};
+use leptos::{either::Either, leptos_dom::logging::console_log, prelude::*};
+use leptos_router::{hooks::use_params, params::Params};
+use std::{cmp::Reverse, iter, ops::Deref};
 
 fn game_state_updates(
     room_id: u64,
     uid: u64,
-) -> impl SignalGet<Value = PlayerGameState> + SignalWith<Value = PlayerGameState> + Copy {
+) -> impl Read<Value: Deref<Target = PlayerGameState>> + With<Value = PlayerGameState> + Copy {
     // TODO: use create_signal_from_stream
-    let (state, set_state) = create_signal(PlayerGameState::default());
+    let (state, set_state) = signal(PlayerGameState::default());
     if_frontend! {
+        use leptos::task::Executor;
         use futures::StreamExt;
         use gloo_net::websocket::{futures::WebSocket, Message::Text};
         use gloo_utils::window;
@@ -30,7 +27,7 @@ fn game_state_updates(
             .expect("failed to open ws");
 
         let mut recv = conn.split().1;
-        spawn_local(async move {
+        Executor::spawn_local(async move {
             while let Some(msg) = recv.next().await {
                 match msg {
                     Ok(msg) => {
@@ -53,6 +50,9 @@ fn game_state_updates(
             }
         });
     }
+    if_backend! {
+        let _ = (set_state, room_id, uid);
+    }
     state
 }
 
@@ -74,8 +74,8 @@ fn CardThick() -> impl IntoView {
 #[component]
 fn NameChange(current_name: String, creds: (u64, u64)) -> impl IntoView {
     let (uid, room_id) = creds;
-    let (new_name, set_new_name) = create_signal(current_name);
-    let set_name = create_action(move |name: &String| {
+    let (new_name, set_new_name) = signal(current_name);
+    let set_name = Action::new(move |name: &String| {
         let name = name.clone();
         async move {
             if let Err(e) = set_name(room_id, uid, name.clone()).await {
@@ -83,10 +83,10 @@ fn NameChange(current_name: String, creds: (u64, u64)) -> impl IntoView {
             }
         }
     });
-    let nameError = create_memo(move |_| new_name.with(|s| check_username(s)));
+    let nameError = Memo::new(move |_| new_name.with(|s| check_username(s)));
     let on_submit = move |ev: leptos::ev::SubmitEvent| {
         ev.prevent_default();
-        if nameError.get().is_ok() {
+        if nameError.read().is_ok() {
             set_name.dispatch(new_name.get());
         }
     };
@@ -105,19 +105,19 @@ fn NameChange(current_name: String, creds: (u64, u64)) -> impl IntoView {
 
     view! {
         <form on:submit=on_submit>
-            <label class=move || input_classes(nameError.get().is_err())>
+            <label class=move || input_classes(nameError.read().is_err())>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4 opacity-70">
                     <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM12.735 14c.618 0 1.093-.561.872-1.139a6.002 6.002 0 0 0-11.215 0c-.22.578.254 1.139.872 1.139h9.47Z" />
                 </svg>
                 <input type="text" class="grow" prop:value=new_name on:input=on_input />
                 { move ||
                     match nameError.get() {
-                        Ok(_) => view!{}.into_view(),
-                        Err(e) => view! {
+                        Ok(_) => Either::Left(view!{}),
+                        Err(e) => Either::Right(view! {
                             <div class="label">
                                 <span class="label-text-alt text-error">{ e }</span>
                             </div>
-                        }.into_view()
+                        }),
                     }
                 }
             </label>
@@ -132,8 +132,8 @@ fn convert_to_double(card: u64) -> String {
 
 #[component]
 fn CardChange<
-    CardsSignal: SignalGet<Value = Vec<u64>> + Copy + 'static,
-    SelfCardSignal: SignalGet<Value = Option<u64>> + Copy + 'static,
+    CardsSignal: Read<Value: Deref<Target = Vec<u64>>> + Copy + Send + Sync + 'static,
+    SelfCardSignal: Read<Value: Deref<Target = Option<u64>>> + Copy + Send + Sync + 'static,
 >(
     cards: CardsSignal,
     self_card: SelfCardSignal,
@@ -141,7 +141,7 @@ fn CardChange<
 ) -> impl IntoView {
     let (uid, room_id) = creds;
 
-    let place_bet = create_action(move |&card: &Option<u64>| async move {
+    let place_bet = Action::new(move |&card: &Option<u64>| async move {
         if let Err(e) = place_bet(room_id, uid, card).await {
             console_log(&format!("Received error response {e:?}"));
         }
@@ -151,38 +151,38 @@ fn CardChange<
         { move || {
             let default_classes = "btn mr-2";
             let active_classes = format!("{default_classes} btn-active");
-            let self_card = self_card.get();
-            cards.get().iter().copied().map(|v| view! {
+            let self_card = self_card.read();
+            cards.read().iter().copied().map(|v| view! {
                 <button
-                    on:click=move |_| place_bet.dispatch(Some(v))
-                    class=if Some(v) == self_card { active_classes.clone() } else { default_classes.to_string() }
+                    on:click=move |_| { place_bet.dispatch(Some(v)); }
+                    class=if Some(v) == *self_card { active_classes.clone() } else { default_classes.to_string() }
                 >
                     { convert_to_double(v) }
                 </button>
             }).collect::<Vec<_>>()
         }}
-            <button on:click=move |_| place_bet.dispatch(None) class="btn">"X"</button>
+            <button on:click=move |_| { place_bet.dispatch(None); } class="btn">"X"</button>
         </div>
     }
 }
 
 #[component]
 fn HideReveal<
-    HiddenSignal: SignalGet<Value = bool> + Copy + 'static,
-    AvgSignal: SignalGet<Value = u64> + Copy + 'static,
+    HiddenSignal: Get<Value = bool> + Copy + Send + Sync + 'static,
+    AvgSignal: Get<Value = u64> + Copy + Send + Sync + 'static,
 >(
     hidden: HiddenSignal,
     avg: AvgSignal,
     creds: (u64, u64),
 ) -> impl IntoView {
     let (_, room_id) = creds;
-    let reveal = create_action(move |_: &()| async move {
+    let reveal = Action::new(move |_: &()| async move {
         if let Err(e) = reveal(room_id).await {
             console_log(&format!("Received error response {e:?}"));
         }
     });
 
-    let hide = create_action(move |_: &()| async move {
+    let hide = Action::new(move |_: &()| async move {
         if let Err(e) = hide(room_id).await {
             console_log(&format!("Received error response {e:?}"));
         }
@@ -192,15 +192,15 @@ fn HideReveal<
         <div>
         { move || {
             if hidden.get() {
-                view! {
-                    <button on:click=move |_| reveal.dispatch(()) class="btn">"Reveal"</button>
-                }.into_view()
+                Either::Left(view! {
+                    <button on:click=move |_| { reveal.dispatch(()); } class="btn">"Reveal"</button>
+                })
             } else {
-                view! {
-                    <button on:click=move |_| hide.dispatch(()) class="btn">
+                Either::Right(view! {
+                    <button on:click=move |_| { hide.dispatch(()); } class="btn">
                         "Average is " { convert_to_double(avg.get()) }
                     </button>
-                }.into_view()
+                })
             }
         }}
         </div>
@@ -208,7 +208,9 @@ fn HideReveal<
 }
 
 #[component]
-fn GameStateTable<GameStateSignal: SignalGet<Value = PlayerGameState> + Copy + 'static>(
+fn GameStateTable<
+    GameStateSignal: Read<Value: Deref<Target = PlayerGameState>> + Copy + Send + Sync + 'static,
+>(
     game_state: GameStateSignal,
 ) -> impl IntoView {
     view! {
@@ -221,18 +223,18 @@ fn GameStateTable<GameStateSignal: SignalGet<Value = PlayerGameState> + Copy + '
             </thead>
             <tbody>
             { move || {
-                let state = game_state.get();
+                let state = game_state.read();
                 let render_player = |PlayerState { card, name }, is_self: bool| view! {
                     <tr class=if is_self { "bg-base-300" } else { "hover:bg-base-200" }>
                         <td>{ name }</td>
                         <td>
                         { match card {
-                            Some(v) => if state.hidden && !is_self {
-                                CardThick().into_view()
+                            Some(v) => Either::Left(if state.hidden && !is_self {
+                                Either::Left(CardThick())
                             } else {
-                                convert_to_double(v).into_view()
-                            },
-                            None => "".into_view(),
+                                Either::Right(convert_to_double(v))
+                            }),
+                            None => Either::Right(""),
                         }}
                         </td>
                     </tr>
@@ -240,9 +242,9 @@ fn GameStateTable<GameStateSignal: SignalGet<Value = PlayerGameState> + Copy + '
                 let mut players =
                     state
                         .players
-                        .into_iter()
-                        .map(|v| (v, false))
-                        .chain(iter::once((state.self_state, true)))
+                        .iter()
+                        .map(|v| (v.clone(), false))
+                        .chain(iter::once((state.self_state.clone(), true)))
                         .collect::<Vec<_>>();
                 if !state.hidden {
                     players.sort_unstable_by_key(|player| Reverse(player.0.card));
@@ -270,15 +272,14 @@ pub fn PokerRoom() -> impl IntoView {
         Err(_) => {
             let mut errors = Errors::default();
             errors.insert_with_default_key(AppError::NotFound);
-            return view! {
+            return Either::Left(view! {
                 <ErrorTemplate outside_errors=errors />
-            }
-            .into_view();
+            });
         }
     };
     let uid = get_random_u64().unwrap();
     let game_state = game_state_updates(room_id, uid);
-    let avg_bet = create_memo(move |_| {
+    let avg_bet = Memo::new(move |_| {
         game_state.with(|state| {
             let bets = state
                 .players
@@ -295,9 +296,9 @@ pub fn PokerRoom() -> impl IntoView {
         })
     });
 
-    let current_name = create_memo(move |_| game_state.with(|state| state.self_state.name.clone()));
+    let current_name = Memo::new(move |_| game_state.with(|state| state.self_state.name.clone()));
 
-    view! {
+    Either::Right(view! {
         <div class="max-w-4xl mx-auto px-8 sm:px-4 lg:px-6 pt-6">
             <h1 class="text-base md:text-xl lg:text-3xl font-bold my-1 text-center">"Let's play poker!"</h1>
             <h2 class="text-base md:text-lg lg:text-xl font-semibold my-1 text-center">"Room #" { room_id }</h2>
@@ -307,14 +308,14 @@ pub fn PokerRoom() -> impl IntoView {
                 </div>
                 <div class="mt-2">
                     <CardChange
-                        cards=create_memo(move |_| game_state.with(|state| state.cards.clone()))
-                        self_card=create_memo(move |_| game_state.with(|state| state.self_state.card))
+                        cards=Memo::new(move |_| game_state.with(|state| state.cards.clone()))
+                        self_card=Memo::new(move |_| game_state.with(|state| state.self_state.card))
                         creds=(uid, room_id)
                     />
                 </div>
                 <div class="mt-2">
                     <HideReveal
-                        hidden=create_memo(move |_| game_state.with(|state| state.hidden))
+                        hidden=Memo::new(move |_| game_state.with(|state| state.hidden))
                         avg=avg_bet
                         creds=(uid, room_id)
                     />
@@ -331,5 +332,5 @@ pub fn PokerRoom() -> impl IntoView {
                 </div>
             </div>
         </div>
-    }.into_view()
+    })
 }

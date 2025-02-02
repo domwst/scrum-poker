@@ -1,7 +1,7 @@
 if_backend! {
     use super::backend::{Game, ServerState};
 }
-use leptos::{server, server_fn::error::NoCustomError, use_context, ServerFnError};
+use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::if_backend;
@@ -70,6 +70,7 @@ pub async fn hide(room_id: u64) -> Result<(), ServerFnError> {
 
 #[server(SetName, "/api")]
 pub async fn set_name(room_id: u64, uid: u64, name: String) -> Result<(), ServerFnError> {
+    use leptos::server_fn::error::NoCustomError;
     check_username(&name).map_err(ServerFnError::<NoCustomError>::ServerError)?;
     get_game(room_id)
         .await?

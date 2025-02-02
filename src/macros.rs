@@ -13,7 +13,7 @@ macro_rules! if_backend {
 macro_rules! if_frontend {
     {$($tokens:tt)*} => {
         cfg_if::cfg_if! {
-            if #[cfg(any(feature = "hydrate", feature = "csr"))] {
+            if #[cfg(feature = "hydrate")] {
                 $($tokens)*
             }
         }
