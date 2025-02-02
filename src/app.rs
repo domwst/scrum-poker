@@ -24,7 +24,6 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 
 #[component]
 pub fn App() -> impl IntoView {
-    // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
 
     view! {
@@ -34,7 +33,6 @@ pub fn App() -> impl IntoView {
 
         <Title text="Poker" />
 
-        // content for this welcome page
         <Router>
             <main>
                 <Routes fallback=|| {
@@ -43,7 +41,6 @@ pub fn App() -> impl IntoView {
                     view! {
                         <ErrorTemplate outside_errors/>
                     }
-                    .into_view()
                 }>
                     <Route path=path!("") view=PickRoom />
                     <Route path=path!("rooms/:room_id") view=PokerRoom/>

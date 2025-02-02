@@ -24,7 +24,7 @@ pub fn PickRoom() -> impl IntoView {
     view! {
         <div class="max-w-4xl mx-auto px-8 sm:px-4 lg:px-6 pt-6">
             <h1 class="text-base md:text-xl lg:text-3xl font-bold my-2 text-center">"Enter room id"</h1>
-            <form class="flex justify-center my-3" on:submit=on_submit>
+            <form class="flex justify-center my-3" name="room_id" on:submit=on_submit>
                 <div class="flex mx-auto">
                     <input
                         type="text"
