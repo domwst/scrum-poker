@@ -7,12 +7,12 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-axum = { version = "0.7", features = ["macros", "ws"], optional = true }
+axum = { version = "0.8", features = ["macros", "ws"], optional = true }
 console_error_panic_hook = { version = "0.1", optional = true }
-leptos = { version = "0.7", features = ["nightly"] }
-leptos_axum = { version = "0.7", optional = true }
-leptos_meta = { version = "0.7" }
-leptos_router = { version = "0.7", features = ["nightly"] }
+leptos = { version = "0.8", features = ["nightly"] }
+leptos_axum = { version = "0.8", optional = true }
+leptos_meta = { version = "0.8" }
+leptos_router = { version = "0.8", features = ["nightly"] }
 tokio = { version = "1", features = ["rt-multi-thread", "tracing"], optional = true }
 tower = { version = "0.5", optional = true }
 tower-http = { version = "0.6", features = ["fs"], optional = true }
@@ -28,7 +28,12 @@ futures = "0.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 atomic_refcell = { version = "0.1", optional = true }
-getrandom = "0.2.15"
+rand = { version = "0.9", optional = true }
+async-nats = { version = "0.42", optional = true }
+tower-sessions = { version = "0.14", features = ["signed"], optional = true }
+tower-sessions-core = { version = "0.14", features = ["deletion-task"], optional = true }
+async-trait = { version = "0.1", optional = true }
+time = { version = "0.3", optional = true }
 
 [features]
 hydrate = [
@@ -36,7 +41,6 @@ hydrate = [
     "dep:console_error_panic_hook",
     "dep:gloo-net",
     "dep:gloo-utils",
-    "getrandom/js",
     "dep:wasm-bindgen",
 ]
 ssr = [
@@ -51,6 +55,12 @@ ssr = [
     "dep:tracing",
     "dep:tracing-subscriber",
     "dep:atomic_refcell",
+    "dep:async-nats",
+    "dep:tower-sessions",
+    "dep:tower-sessions-core",
+    "dep:rand",
+    "dep:async-trait",
+    "dep:time",
 ]
 
 # Defines a size-optimized profile for the WASM bundle in release mode

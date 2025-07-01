@@ -349,6 +349,7 @@ const SECOND: &[&str] = &[
     "Zhukovsky",
 ];
 
-pub fn gen_nickname(uid: u64) -> String {
-    FIRST[uid as usize % FIRST.len()].to_owned() + SECOND[uid as usize % SECOND.len()]
+pub fn gen_nickname(uid: u128) -> String {
+    FIRST[(uid % FIRST.len() as u128) as usize].to_owned()
+        + SECOND[(uid % SECOND.len() as u128) as usize]
 }

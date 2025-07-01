@@ -1,8 +1,20 @@
-FROM domwst/scrum-poker-ci-image as build
+FROM rust:1.88.0-slim-bullseye as build
+
+WORKDIR /build
+
+RUN apt-get update
+RUN apt-get install -y --no-install-recommends curl pkg-config libssl-dev make ca-certificates gcc g++ libc6-dev
+RUN curl -fsSL https://deb.nodesource.com/setup_21.x | bash -
+RUN apt-get install -y nodejs
+RUN npm install -D tailwindcss
+RUN npm install -D daisyui@latest
+RUN rustup default nightly
+RUN rustup target add wasm32-unknown-unknown
+RUN cargo install --locked cargo-leptos
 
 COPY . .
 
-RUN rm /build/Cargo.lock
+# RUN rm /build/Cargo.lock
 
 RUN cargo leptos build --release
 

@@ -1,8 +1,11 @@
 pub mod app;
 pub mod error_template;
 pub mod macros;
+
 if_backend! {
     pub mod random_nickname;
+    pub mod session_store;
+    pub mod uid;
 }
 pub mod components;
 
