@@ -4,12 +4,6 @@ on:
   push:
     branches:
       - main
-  workflow_run:
-    workflows: [ "ci-image-build-and-push" ]
-    branches:
-      - main
-    types:
-      - completed
 
 jobs:
   build-prod:
