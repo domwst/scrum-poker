@@ -1,4 +1,4 @@
-use super::api::{check_username, hide, place_bet, reveal, set_name, PlayerGameState, PlayerState};
+use super::api::{PlayerGameState, PlayerState, check_username, hide, place_bet, reveal, set_name};
 use crate::{
     error_template::{AppError, ErrorTemplate},
     if_backend, if_frontend,
@@ -10,35 +10,30 @@ use std::{cmp::Reverse, iter, ops::Deref};
 fn game_state_updates(
     room_id: u64,
 ) -> impl Read<Value: Deref<Target = PlayerGameState>> + With<Value = PlayerGameState> + Copy {
-    // TODO: use create_signal_from_stream
     let (state, set_state) = signal(PlayerGameState::default());
+
     if_frontend! {
-        use futures::StreamExt;
-        use gloo_net::websocket::{futures::WebSocket, Message::Text};
-        use gloo_utils::window;
+        use super::api::{UserStreamRequest, subscribe_to_room};
+        use futures::{StreamExt, stream};
         use leptos::task::spawn_local;
 
-        let protocol = if window().location().protocol().unwrap() == "https:" { "wss" } else { "ws" };
-        let origin = window().location().host().unwrap();
-
-        let conn = WebSocket::open(&format!("{protocol}://{origin}/ws/room/{room_id}"))
-            .expect("failed to open ws");
-
-        let mut recv = conn.split().1;
         spawn_local(async move {
-            while let Some(msg) = recv.next().await {
+            let states = subscribe_to_room(
+                stream::once(async move { Ok(UserStreamRequest::SetRoom(room_id)) }).into(),
+            )
+            .await;
+            let mut states = match states {
+                Ok(s) => s,
+                Err(e) => {
+                    console_log(&format!("Error subscribing: {e:?}"));
+                    return;
+                }
+            };
+
+            while let Some(msg) = states.next().await {
                 match msg {
-                    Ok(msg) => {
-                        if let Text(msg) = msg {
-                            let v = serde_json::from_str(&msg);
-                            if let Ok(v) = v {
-                                set_state.set(v);
-                            } else {
-                                console_log(&format!("Error parsing message: {v:?}"));
-                            }
-                        } else {
-                            console_log(&format!("Unexpected message type: {msg:?}"));
-                        }
+                    Ok(state) => {
+                        set_state.set(state);
                     }
                     Err(e) => {
                         console_log(&format!("Error receiving msg: {e:?}"));
@@ -49,7 +44,7 @@ fn game_state_updates(
         });
     }
     if_backend! {
-        let _ = (set_state, room_id);
+        let _ = (room_id, set_state);
     }
     state
 }
@@ -277,11 +272,7 @@ pub fn PokerRoom() -> impl IntoView {
                 .filter_map(|state| state.card);
             let sm: u64 = bets.clone().sum();
             let cnt = bets.count();
-            if cnt == 0 {
-                0
-            } else {
-                sm / cnt as u64
-            }
+            if cnt == 0 { 0 } else { sm / cnt as u64 }
         })
     });
 

@@ -1,5 +1,5 @@
 use rand::random;
-use tower_sessions::{session::Error, session_store, Session};
+use tower_sessions::{Session, session::Error, session_store};
 
 const UID_KEY: &str = "UID";
 
@@ -11,6 +11,7 @@ pub async fn get_or_create_uid(session: &Session) -> Result<u128, Error> {
     let id: u128 = random();
     // Potential data race here, but I think it's mostly ok
     session.insert(UID_KEY, id.to_ne_bytes()).await?;
+    session.save().await?;
     Ok(id)
 }
 

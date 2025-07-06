@@ -3,7 +3,7 @@
 use time::ext::{NumericalDuration, NumericalStdDuration};
 
 use async_nats::jetstream;
-use axum::{extract::FromRef, routing::get};
+use axum::extract::FromRef;
 use leptos::prelude::*;
 use leptos_axum::AxumRouteListing;
 use scrum_poker::{components::poker::room::backend::ServerState, session_store::NatsSessionStore};
@@ -44,9 +44,8 @@ async fn main() {
     const SESSIONS_BUCKET: EnvVar<'static> = EnvVar::new("SESSION_BUCKET", "sessions");
 
     use axum::Router;
-    use leptos_axum::{generate_route_list, LeptosRoutes};
+    use leptos_axum::{LeptosRoutes, generate_route_list};
     use scrum_poker::app::*;
-    use scrum_poker::components::poker::room::backend::ws_handler;
 
     tracing_subscriber::FmtSubscriber::builder()
         .with_max_level(tracing::Level::DEBUG)
@@ -103,7 +102,6 @@ async fn main() {
                 move || shell(leptos_options.clone())
             },
         )
-        .route("/ws/room/{room_id}", get(ws_handler))
         .fallback(leptos_axum::file_and_error_handler::<GlobalAppState, _>(
             shell,
         ))
